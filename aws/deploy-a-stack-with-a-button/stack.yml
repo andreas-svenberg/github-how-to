@@ -1,0 +1,62 @@
+# stack.yml
+# Create or delete the demo stack with a button.
+# Save in your repository as .github/workflows/stack.yml and push to main.
+# Start it with Run workflow and choose create or delete.
+# Needs the repository variables AWS_ROLE_ARN (see aws/sign-in-without-keys)
+# and PREFIX, the same prefix as in the AWS scripts.
+name: Demo stack
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: What should be done with the stack?
+        type: choice
+        options:
+          - create
+          - delete
+        default: create
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  PREFIX: ${{ vars.PREFIX }}
+  STACK: ${{ vars.PREFIX }}-gh-demo   # must start with <prefix>-gh- to match the role's policy
+
+jobs:
+  stack:
+    runs-on: ubuntu-24.04
+    steps:
+      # Without PREFIX the stack name would be -gh-demo, which the role may not touch
+      - name: Check that PREFIX is set
+        if: env.PREFIX == ''
+        run: |
+          echo "::error::Create the repository variable PREFIX first"
+          exit 1
+
+      - uses: actions/checkout@v7
+
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: eu-north-1   # change to your region
+
+      - name: Create or update the stack
+        if: inputs.action == 'create'
+        run: |
+          aws cloudformation deploy \
+            --template-file templates/demo-vpc.yaml \
+            --stack-name "$STACK" \
+            --parameter-overrides Prefix="$PREFIX-gh" \
+            --no-fail-on-empty-changeset
+          aws cloudformation describe-stacks --stack-name "$STACK" \
+            --query "Stacks[0].Outputs" --output table
+
+      - name: Delete the stack
+        if: inputs.action == 'delete'
+        run: |
+          aws cloudformation delete-stack --stack-name "$STACK"
+          aws cloudformation wait stack-delete-complete --stack-name "$STACK"
+          echo "The stack $STACK is deleted"

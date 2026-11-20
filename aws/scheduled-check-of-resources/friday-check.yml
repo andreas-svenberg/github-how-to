@@ -1,0 +1,48 @@
+# friday-check.yml
+# Every Friday at 15.00 Swedish time, list what is running in AWS.
+# Save in your repository as .github/workflows/friday-check.yml and push to main.
+# Can also be started with Run workflow. The result is shown as a table on the run page.
+# Needs the repository variable AWS_ROLE_ARN (see aws/sign-in-without-keys).
+name: Friday check
+
+on:
+  schedule:
+    - cron: '0 15 * * 5'
+      timezone: 'Europe/Stockholm'   # change to your time zone
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: eu-north-1   # change to your region
+
+      - name: List what is running
+        run: |
+          {
+            echo "## Running in ${AWS_REGION}"
+            echo
+            echo "| Type | Name or id | Status |"
+            echo "|---|---|---|"
+            aws ec2 describe-instances \
+              --filters Name=instance-state-name,Values=running \
+              --query "Reservations[].Instances[].[InstanceId,State.Name]" --output text |
+              while read -r id state; do echo "| EC2 | $id | $state |"; done
+            aws rds describe-db-instances \
+              --query "DBInstances[].[DBInstanceIdentifier,DBInstanceStatus]" --output text |
+              while read -r id state; do echo "| RDS | $id | $state |"; done
+            aws elbv2 describe-load-balancers \
+              --query "LoadBalancers[].[LoadBalancerName,State.Code]" --output text |
+              while read -r id state; do echo "| Load balancer | $id | $state |"; done
+            aws cloudformation list-stacks \
+              --stack-status-filter CREATE_COMPLETE UPDATE_COMPLETE \
+              --query "StackSummaries[].[StackName,StackStatus]" --output text |
+              while read -r id state; do echo "| Stack | $id | $state |"; done
+          } >> "$GITHUB_STEP_SUMMARY"

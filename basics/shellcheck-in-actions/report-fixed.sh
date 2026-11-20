@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Counts the files in a folder and writes a short report.
+set -euo pipefail
+
+folder=${1:-.}
+count=$(find "$folder" -maxdepth 1 -type f | wc -l)
+echo "The folder $folder contains $count files"

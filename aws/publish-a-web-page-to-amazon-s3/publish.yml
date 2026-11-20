@@ -1,0 +1,32 @@
+# publish.yml
+# Publish index.html to the S3 bucket when it changes on main.
+# Save in your repository as .github/workflows/publish.yml and push.
+# Needs the repository variables AWS_ROLE_ARN and SITE_BUCKET.
+name: Publish
+
+on:
+  push:
+    branches: [main]
+    paths: ['index.html']
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: eu-north-1   # change to your region
+
+      - name: Upload index.html
+        run: aws s3 cp index.html "s3://${{ vars.SITE_BUCKET }}/index.html" --content-type "text/html; charset=utf-8"
+
+      - name: Show the address
+        run: echo "http://${{ vars.SITE_BUCKET }}.s3-website.eu-north-1.amazonaws.com" >> "$GITHUB_STEP_SUMMARY"

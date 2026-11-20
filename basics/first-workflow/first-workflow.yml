@@ -1,0 +1,25 @@
+# first-workflow.yml
+# The first workflow: runs on every push, on every branch.
+# Save in your repository as .github/workflows/first-workflow.yml and push.
+name: First workflow
+
+on: push
+
+jobs:
+  hello:
+    runs-on: ubuntu-24.04
+    steps:
+      # Fetch the repository content to the runner
+      - uses: actions/checkout@v7
+
+      # Show who started the run and on which branch
+      - run: echo "Hello from ${{ github.actor }} on ${{ github.ref_name }}"
+
+      # List the files that came with the checkout
+      - run: ls -la
+
+      # Tools that are already installed on the runner
+      - run: |
+          shellcheck --version
+          python3 --version
+          aws --version

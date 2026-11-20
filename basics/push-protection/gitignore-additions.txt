@@ -1,0 +1,11 @@
+# Files with passwords and keys
+.env
+*.pem
+*.key
+
+# AWS CLI settings and keys
+.aws/
+credentials
+
+# Azure CLI settings and sign-in data
+.azure/

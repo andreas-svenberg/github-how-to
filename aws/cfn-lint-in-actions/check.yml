@@ -1,0 +1,64 @@
+# check.yml
+# The Check workflow from basics/shellcheck-in-actions, with two new jobs for CloudFormation templates.
+# Replace .github/workflows/check.yml with this file and push.
+# The job validate needs the repository variable AWS_ROLE_ARN (see aws/sign-in-without-keys).
+name: Check
+
+on: push
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  shellcheck:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: ShellCheck version
+        run: shellcheck --version
+
+      - name: List .sh files
+        run: find . -name '*.sh' -not -path './.git/*' | sort
+
+      - name: Run ShellCheck
+        run: |
+          find . -name '*.sh' -not -path './.git/*' \
+            -exec shellcheck {} +
+
+  cfn-lint:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+
+      # A separate Python avoids installing into the system Python of the runner
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+
+      - name: Install cfn-lint
+        run: pip install cfn-lint
+
+      - name: Run cfn-lint
+        run: cfn-lint templates/*.yaml
+
+  validate:
+    # Only main may sign in to AWS (the trust policy allows only main)
+    if: github.ref == 'refs/heads/main'
+    needs: cfn-lint
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: eu-north-1   # change to your region
+
+      - name: Validate templates in AWS
+        run: |
+          for t in templates/*.yaml; do
+            echo "== $t"
+            aws cloudformation validate-template --template-body "file://$t" --query Parameters[].ParameterKey --output text
+          done

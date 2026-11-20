@@ -1,0 +1,42 @@
+# deploy.yml
+# Copy the folder public/ to a web host with rsync over SSH, on every push to main.
+# Save in your repository as .github/workflows/deploy.yml and push to main.
+# Can also be started with Run workflow.
+# Needs the repository secrets SSH_PRIVATE_KEY, SSH_HOST, SSH_USER and DEPLOY_PATH.
+name: Deploy with rsync
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    env:
+      SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+      SSH_HOST: ${{ secrets.SSH_HOST }}
+      SSH_USER: ${{ secrets.SSH_USER }}
+      DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      # Write the key to a file, and fetch the server's host key.
+      # The README describes a safer way: a saved host key instead of ssh-keyscan.
+      - name: Set up SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts
+
+      # --delete removes files on the server that are no longer in public/.
+      # The excluded folders are created by the web host and must not be removed.
+      - name: Deploy public/ with rsync
+        run: |
+          rsync -avz --delete \
+            --exclude='.well-known' \
+            --exclude='cgi-bin' \
+            -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes" \
+            public/ "${SSH_USER}@${SSH_HOST}:${DEPLOY_PATH}"

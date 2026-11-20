@@ -1,0 +1,27 @@
+# show-subject.yml
+# Shows which identity (sub) GitHub sends for your repository, so you can put it in the trust policy.
+# Save as .github/workflows/show-subject.yml, push to main, read the log, then delete the file.
+# Prints only the claims, never the token itself.
+name: Show subject
+
+on: push
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  show:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Show OIDC claims
+        run: |
+          TOKEN=$(curl -sS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=sts.amazonaws.com" | python3 -c 'import sys,json; print(json.load(sys.stdin)["value"])')
+          echo "$TOKEN" | python3 -c '
+          import sys, json, base64
+          p = sys.stdin.read().strip().split(".")[1]
+          c = json.loads(base64.urlsafe_b64decode(p + "=" * (-len(p) % 4)))
+          for k in ("sub", "repository", "repository_id", "repository_owner", "repository_owner_id", "ref"):
+              print(f"{k}: {c.get(k)}")
+          '

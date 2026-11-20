@@ -1,0 +1,8 @@
+# Log files
+*.log
+
+# Files with passwords
+.env
+
+# Build output
+build/
