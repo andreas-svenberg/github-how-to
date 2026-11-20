@@ -72,6 +72,8 @@ Do this for the real repository later. For the test repository there is nothing 
 3. Click **I want to delete this repository**, and then **I have read and understand these effects**.
 4. Type the repository's full name, `<owner>/archive-test`, and click **Delete this repository**.
 
+   GitHub may ask you to confirm access with a passkey, GitHub Mobile, an authenticator app or your password. This is called sudo mode, and GitHub then does not ask again until you have been inactive for a few hours.
+
 The repository is gone, and its address no longer shows it.
 
 ### 5. Restore
