@@ -12,6 +12,7 @@ deploy to. Nothing here needs an account outside GitHub.
 | [Push protection](push-protection/) | See how GitHub stops a push that contains a secret, and keep secrets out of the repository with `.gitignore`. |
 | [ShellCheck in Actions](shellcheck-in-actions/) | Check your shell scripts on every push, and show the result as a status badge. |
 | [Secrets and variables](secrets-and-variables/) | Store keys and settings in the repository's settings, and read them in a workflow. |
+| [Archive or delete a repository](archive-or-delete-a-repository/) | Make a finished repository read-only, or delete it, and undo both. |
 
 ## Next
 
